@@ -5,130 +5,190 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    Alert,
+    Animated,
+    ActivityIndicator,
 } from 'react-native';
-
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-
-import {
-    PhoneAuthProvider,
-    signInWithCredential,
-} from '@firebase/auth';
-
-import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
-
-import { auth } from '@/lib/firebase';
+import * as Linking from 'expo-linking';
 
 export default function LoginScreen() {
-    const recaptchaVerifier = useRef<any>(null);
-
     const [phoneNumber, setPhoneNumber] = useState('');
-    const [verificationId, setVerificationId] = useState('');
-    const [code, setCode] = useState('');
-    const [sending, setSending] = useState(false);
+    const [otp, setOtp] = useState('');
+    const [sendingOtp, setSendingOtp] = useState(false);
+    const [verifyingOtp, setVerifyingOtp] = useState(false);
 
-    const sendOTP = async () => {
-        try {
-            setSending(true);
+    const flipAnim = useRef(new Animated.Value(0)).current;
 
-            // const provider = new PhoneAuthProvider(auth);
-            //
-            // const verificationId = await provider.verifyPhoneNumber(
-            //     phoneNumber,
-            //     recaptchaVerifier.current
-            // );
-            //
-            // setVerificationId(verificationId);
-
-            router.replace('/add-contact');
-
-            Alert.alert('Success', 'OTP sent');
-        } catch (error: any) {
-            Alert.alert('Error', error.message);
-        } finally {
-            setSending(false);
-        }
+    const flipToOtpForm = () => {
+        Animated.timing(flipAnim, {
+            toValue: 180,
+            duration: 500,
+            useNativeDriver: true,
+        }).start();
     };
 
-    const verifyOTP = async () => {
-        try {
-            const credential = PhoneAuthProvider.credential(
-                verificationId,
-                code
-            );
-
-            const userCredential = await signInWithCredential(
-                auth,
-                credential
-            );
-
-            const phone = userCredential.user.phoneNumber;
-
-            await AsyncStorage.setItem(
-                'ipeya_phone',
-                phone || phoneNumber
-            );
-
-            router.replace('/add-contact');
-        } catch (error: any) {
-            Alert.alert('Verification Failed', error.message);
-        }
+    const flipToPhoneForm = () => {
+        Animated.timing(flipAnim, {
+            toValue: 0,
+            duration: 500,
+            useNativeDriver: true,
+        }).start();
     };
+
+    const handleRequestOtp = async () => {
+        setSendingOtp(true);
+
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        setSendingOtp(false);
+        flipToOtpForm();
+    };
+
+    const handleValidateOtp = async () => {
+        setVerifyingOtp(true);
+
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        setVerifyingOtp(false);
+
+        router.replace('/add-contact');
+    };
+
+    const frontInterpolate = flipAnim.interpolate({
+        inputRange: [0, 180],
+        outputRange: ['0deg', '180deg'],
+    });
+
+    const backInterpolate = flipAnim.interpolate({
+        inputRange: [0, 180],
+        outputRange: ['180deg', '360deg'],
+    });
 
     return (
         <View style={styles.container}>
-
-            {/*<FirebaseRecaptchaVerifierModal*/}
-            {/*    ref={recaptchaVerifier}*/}
-            {/*    firebaseConfig={auth.app.options}*/}
-            {/*/>*/}
-
             <Text style={styles.brand}>Ipeya</Text>
 
             <View style={styles.center}>
+                <View style={styles.cardContainer}>
 
-                <TextInput
-                    style={styles.input}
-                    placeholder="+2348012345678"
-                    keyboardType="phone-pad"
-                    value={phoneNumber}
-                    onChangeText={setPhoneNumber}
-                />
-
-                {!verificationId ? (
-                    <TouchableOpacity
-                        style={styles.button}
-                        onPress={sendOTP}
-                        disabled={sending}
+                    {/* PHONE FORM */}
+                    <Animated.View
+                        style={[
+                            styles.card,
+                            {
+                                transform: [
+                                    { perspective: 1000 },
+                                    { rotateY: frontInterpolate },
+                                ],
+                            },
+                        ]}
                     >
-                        <Text style={styles.buttonText}>
-                            Send OTP
+                        <Text style={styles.title}>
+                            Verify Phone Number
                         </Text>
-                    </TouchableOpacity>
-                ) : (
-                    <>
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="+2348012345678"
+                            keyboardType="phone-pad"
+                            value={phoneNumber}
+                            onChangeText={setPhoneNumber}
+                        />
+
+                        <TouchableOpacity
+                            style={[
+                                styles.button,
+                                sendingOtp && styles.disabledButton,
+                            ]}
+                            onPress={handleRequestOtp}
+                            disabled={sendingOtp}
+                        >
+                            {sendingOtp ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text style={styles.buttonText}>
+                                    Request OTP
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+                    </Animated.View>
+
+                    {/* OTP FORM */}
+                    <Animated.View
+                        style={[
+                            styles.card,
+                            styles.cardBack,
+                            {
+                                transform: [
+                                    { perspective: 1000 },
+                                    { rotateY: backInterpolate },
+                                ],
+                            },
+                        ]}
+                    >
+                        <View style={styles.header}>
+                            <TouchableOpacity
+                                style={styles.backButtonContainer}
+                                onPress={flipToPhoneForm}
+                            >
+                                <Text style={styles.backButton}>
+                                    ←
+                                </Text>
+                            </TouchableOpacity>
+
+                            <Text style={styles.titleNoMargin}>
+                                Enter OTP
+                            </Text>
+                        </View>
+
                         <TextInput
                             style={styles.input}
                             placeholder="Enter OTP"
                             keyboardType="number-pad"
-                            value={code}
-                            onChangeText={setCode}
+                            value={otp}
+                            onChangeText={setOtp}
+                            maxLength={6}
                         />
 
                         <TouchableOpacity
-                            style={styles.button}
-                            onPress={verifyOTP}
+                            style={[
+                                styles.button,
+                                verifyingOtp && styles.disabledButton,
+                            ]}
+                            onPress={handleValidateOtp}
+                            disabled={verifyingOtp}
                         >
-                            <Text style={styles.buttonText}>
-                                Verify OTP
-                            </Text>
+                            {verifyingOtp ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text style={styles.buttonText}>
+                                    Validate OTP
+                                </Text>
+                            )}
                         </TouchableOpacity>
-                    </>
-                )}
+                    </Animated.View>
 
+                </View>
+                <Text style={styles.disclaimer}>
+                    By requesting an OTP, you agree to our{' '}
+                    <Text
+                        style={styles.link}
+                        onPress={() => Linking.openURL('https://example.com/terms')}
+                    >
+                        Terms & Conditions
+                    </Text>{' '}
+                    and{' '}
+                    <Text
+                        style={styles.link}
+                        onPress={() => Linking.openURL('https://example.com/privacy')}
+                    >
+                        Privacy Policy
+                    </Text>
+                    .
+                </Text>
             </View>
-
         </View>
     );
 }
@@ -138,7 +198,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#5A0B78',
         padding: 20,
-
     },
 
     brand: {
@@ -151,24 +210,99 @@ const styles = StyleSheet.create({
     center: {
         flex: 1,
         justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    cardContainer: {
+        width: '100%',
+        height: 260,
+    },
+
+    card: {
+        position: 'absolute',
+        width: '100%',
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 20,
+        backfaceVisibility: 'hidden',
+    },
+
+    cardBack: {
+        position: 'absolute',
+        width: '100%',
+        top: 0,
+        left: 0,
+    },
+
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+
+    backButtonContainer: {
+        paddingVertical: 6,
+        paddingRight: 12,
+        paddingLeft: 4,
+    },
+
+    backButton: {
+        color: '#5A0B78',
+        fontSize: 24,
+        fontWeight: '700',
+    },
+
+    title: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#5A0B78',
+        marginBottom: 24,
+    },
+
+    titleNoMargin: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#5A0B78',
     },
 
     input: {
-        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
         borderRadius: 10,
         padding: 15,
         marginBottom: 15,
+        fontSize: 16,
     },
 
     button: {
-        backgroundColor: '#fff',
-        padding: 15,
+        backgroundColor: '#5A0B78',
+        paddingVertical: 15,
         borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 52,
+    },
+
+    disabledButton: {
+        opacity: 0.8,
     },
 
     buttonText: {
-        color: '#5A0B78',
-        fontWeight: '700',
+        color: '#fff',
         textAlign: 'center',
+        fontWeight: '700',
+        fontSize: 16,
+    },
+    disclaimer: {
+        color: '#ffffff',
+        textAlign: 'center',
+        marginTop: 20,
+        lineHeight: 22,
+        fontSize: 14,
+    },
+
+    link: {
+        textDecorationLine: 'underline',
+        fontWeight: '600',
     },
 });

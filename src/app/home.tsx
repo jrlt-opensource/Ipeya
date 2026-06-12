@@ -1,13 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+    Animated,
+    Easing,
+    Modal,
+    Pressable,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
-    Switch,
-    Animated,
-    Dimensions,
+    Alert,
 } from 'react-native';
 import {
     MaterialIcons,
@@ -17,20 +19,11 @@ import {
 } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+const PRIMARY = '#5A0B78';
 
 export default function HomeScreen() {
     const [selectedAlerts, setSelectedAlerts] = useState<string[]>([]);
-
-    const [contacts, setContacts] = useState([
-        { id: 1, name: 'John Doe', enabled: true },
-        { id: 2, name: 'Mary Johnson', enabled: false },
-        { id: 3, name: 'David Smith', enabled: true },
-        { id: 4, name: 'Aisha Bello', enabled: false },
-        { id: 5, name: 'Michael James', enabled: true },
-        { id: 6, name: 'Fatima Musa', enabled: true },
-        { id: 7, name: 'Ibrahim Yusuf', enabled: false },
-    ]);
+    const [menuVisible, setMenuVisible] = useState(false);
 
     const stats = [
         '⚠️ Threat level: Medium in your area',
@@ -40,122 +33,257 @@ export default function HomeScreen() {
         '📡 Network status: Stable',
     ];
 
-    const scrollX = useRef(new Animated.Value(0)).current;
-
     /* ---------------- SOS PULSE ---------------- */
+
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
         Animated.loop(
             Animated.sequence([
                 Animated.timing(pulseAnim, {
-                    toValue: 1.15,
-                    duration: 800,
+                    toValue: 1.12,
+                    duration: 900,
                     useNativeDriver: true,
                 }),
                 Animated.timing(pulseAnim, {
                     toValue: 1,
-                    duration: 800,
+                    duration: 900,
                     useNativeDriver: true,
                 }),
             ])
         ).start();
     }, []);
 
-    /* ---------------- INFINITE MARQUEE ---------------- */
+    /* ---------------- TICKER ---------------- */
+
+    const tickerAnim = useRef(new Animated.Value(0)).current;
+
     useEffect(() => {
         Animated.loop(
-            Animated.timing(scrollX, {
-                toValue: -width,
-                duration: 12000,
+            Animated.timing(tickerAnim, {
+                toValue: -2500,
+                duration: 40000,
+                easing: Easing.linear,
                 useNativeDriver: true,
             })
         ).start();
     }, []);
 
-    const toggleAlert = (id: string) => {
-        if (selectedAlerts.includes(id)) {
-            setSelectedAlerts(selectedAlerts.filter(i => i !== id));
-        } else {
-            setSelectedAlerts([...selectedAlerts, id]);
-        }
-    };
-
-    const toggleContact = (id: number) => {
-        setContacts(prev =>
-            prev.map(c =>
-                c.id === id ? { ...c, enabled: !c.enabled } : c
-            )
+    const triggerSOS = () => {
+        Alert.alert(
+            'Emergency SOS',
+            'Your trusted contacts and emergency network will be notified.'
         );
     };
 
-    const triggerSOS = () => {
-        alert('🚨 Emergency SOS Triggered');
+    const toggleAlert = (id: string) => {
+        if (selectedAlerts.includes(id)) {
+            setSelectedAlerts(prev => prev.filter(x => x !== id));
+        } else {
+            setSelectedAlerts(prev => [...prev, id]);
+        }
     };
 
+    const menuItems = [
+        {
+            title: 'Generate Pairing Code',
+            icon: 'qr-code',
+        },
+        {
+            title: 'View Reports',
+            icon: 'assessment',
+        },
+        {
+            title: 'View History',
+            icon: 'history',
+        },
+        {
+            title: 'Manage Trusted Contacts',
+            icon: 'people',
+        },
+        {
+            title: 'Notification Settings',
+            icon: 'notifications',
+        },
+        {
+            title: 'Terms and Conditions',
+            icon: 'description',
+        },
+        {
+            title: 'Privacy Policy',
+            icon: 'privacy-tip',
+        },
+        {
+            title: 'Credits and Licenses',
+            icon: 'verified',
+        },
+        {
+            title: 'Customer Support',
+            icon: 'support-agent',
+        },
+        {
+            title: 'Share Feedback',
+            icon: 'feedback',
+        },
+        {
+            title: 'Invite a Trusted Contact',
+            icon: 'person-add',
+        },
+    ];
+
     const alertTypes = [
-        { id: 'theft', icon: <MaterialIcons name="local-police" size={28} color="white" /> },
-        { id: 'fire', icon: <MaterialCommunityIcons name="fire" size={28} color="white" /> },
-        { id: 'gun', icon: <MaterialCommunityIcons name="pistol" size={28} color="white" /> },
-        { id: 'kidnap', icon: <FontAwesome5 name="user-secret" size={24} color="white" /> },
-        { id: 'medical', icon: <Ionicons name="medical" size={28} color="white" /> },
+        {
+            id: 'theft',
+            icon: (
+                <MaterialIcons
+                    name="local-police"
+                    size={28}
+                    color="#fff"
+                />
+            ),
+        },
+        {
+            id: 'fire',
+            icon: (
+                <MaterialCommunityIcons
+                    name="fire"
+                    size={28}
+                    color="#fff"
+                />
+            ),
+        },
+        {
+            id: 'gun',
+            icon: (
+                <MaterialCommunityIcons
+                    name="pistol"
+                    size={28}
+                    color="#fff"
+                />
+            ),
+        },
+        {
+            id: 'kidnap',
+            icon: (
+                <FontAwesome5
+                    name="user-secret"
+                    size={24}
+                    color="#fff"
+                />
+            ),
+        },
+        {
+            id: 'medical',
+            icon: (
+                <Ionicons
+                    name="medical"
+                    size={28}
+                    color="#fff"
+                />
+            ),
+        },
     ];
 
     return (
         <SafeAreaView style={styles.container}>
 
             {/* HEADER */}
+
             <View style={styles.headerRow}>
+                <Text style={styles.brand}>
+                    Ipeya
+                </Text>
 
-                {/* LEFT */}
-                <Text style={styles.brand}>Ipeya</Text>
-
-                {/* CENTER (FULL WIDTH MARQUEE) */}
-                <View style={styles.marqueeWrapper}>
+                <View style={styles.tickerWrapper}>
                     <Animated.View
                         style={[
-                            styles.marqueeTrack,
-                            { transform: [{ translateX: scrollX }] },
+                            styles.tickerTrack,
+                            {
+                                transform: [
+                                    {
+                                        translateX: tickerAnim,
+                                    },
+                                ],
+                            },
                         ]}
                     >
-                        {/* duplicated for infinite loop feel */}
-                        {[...stats, ...stats].map((item, index) => (
-                            <Text key={index} style={styles.marqueeText}>
-                                {item}   •   {' '}
-                            </Text>
-                        ))}
+                        {[...stats, ...stats, ...stats].map(
+                            (item, index) => (
+                                <Text
+                                    key={index}
+                                    style={styles.tickerText}
+                                >
+                                    {item} •
+                                </Text>
+                            )
+                        )}
                     </Animated.View>
                 </View>
 
-                {/* RIGHT */}
-                <TouchableOpacity style={styles.menuButton}>
-                    <MaterialIcons name="menu" size={28} color="#fff" />
+                <TouchableOpacity
+                    style={styles.menuButton}
+                    onPress={() =>
+                        setMenuVisible(true)
+                    }
+                >
+                    <MaterialIcons
+                        name="menu"
+                        size={28}
+                        color="#fff"
+                    />
                 </TouchableOpacity>
-
             </View>
 
-            {/* SOS */}
+            {/* SOS SECTION */}
+
             <View style={styles.topSection}>
-                <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                    <TouchableOpacity style={styles.sosCircle} onPress={triggerSOS}>
-                        <Text style={styles.sosText}>SOS</Text>
+                <Animated.View
+                    style={{
+                        transform: [
+                            {
+                                scale: pulseAnim,
+                            },
+                        ],
+                    }}
+                >
+                    <TouchableOpacity
+                        style={styles.sosCircle}
+                        onPress={triggerSOS}
+                    >
+                        <Text style={styles.sosText}>
+                            SOS
+                        </Text>
                     </TouchableOpacity>
                 </Animated.View>
+
+                <Text style={styles.sosHint}>
+                    Tap in an emergency to alert
+                    your trusted contacts
+                </Text>
             </View>
 
-            {/* ICONS (CENTER PACKED) */}
+            {/* INCIDENT TYPES */}
+
             <View style={styles.iconSection}>
                 {alertTypes.map(item => {
-                    const active = selectedAlerts.includes(item.id);
+                    const active =
+                        selectedAlerts.includes(
+                            item.id
+                        );
 
                     return (
                         <TouchableOpacity
                             key={item.id}
                             style={[
                                 styles.iconButton,
-                                active && styles.iconButtonActive,
+                                active &&
+                                styles.iconButtonActive,
                             ]}
-                            onPress={() => toggleAlert(item.id)}
+                            onPress={() =>
+                                toggleAlert(
+                                    item.id
+                                )
+                            }
                         >
                             {item.icon}
                         </TouchableOpacity>
@@ -163,84 +291,155 @@ export default function HomeScreen() {
                 })}
             </View>
 
-            {/* CONTACTS */}
-            <View style={styles.bottomSection}>
-                <ScrollView showsVerticalScrollIndicator={false}>
-                    {contacts.map(contact => (
-                        <View key={contact.id} style={styles.contactRow}>
-                            <Text style={styles.contactName}>{contact.name}</Text>
-                            <Switch
-                                value={contact.enabled}
-                                onValueChange={() => toggleContact(contact.id)}
-                            />
-                        </View>
-                    ))}
+            {/* MENU MODAL */}
 
-                    <View style={styles.addButtonWrapper}>
-                        <TouchableOpacity style={styles.addButton}>
-                            <MaterialIcons name="add" size={32} color={PRIMARY} />
-                        </TouchableOpacity>
-                    </View>
-                </ScrollView>
-            </View>
+            <Modal
+                visible={menuVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() =>
+                    setMenuVisible(false)
+                }
+            >
+                <Pressable
+                    style={styles.overlay}
+                    onPress={() =>
+                        setMenuVisible(false)
+                    }
+                >
+                    <Pressable
+                        style={styles.menuModal}
+                    >
+                        <Text
+                            style={styles.menuTitle}
+                        >
+                            Menu
+                        </Text>
+
+                        <ScrollView
+                            showsVerticalScrollIndicator={
+                                false
+                            }
+                        >
+                            {menuItems.map(
+                                (
+                                    item,
+                                    index
+                                ) => (
+                                    <TouchableOpacity
+                                        key={
+                                            index
+                                        }
+                                        style={
+                                            styles.menuItem
+                                        }
+                                        onPress={() => {
+                                            setMenuVisible(
+                                                false
+                                            );
+
+                                            Alert.alert(
+                                                item.title
+                                            );
+                                        }}
+                                    >
+                                        <MaterialIcons
+                                            name={
+                                                item.icon as any
+                                            }
+                                            size={
+                                                22
+                                            }
+                                            color={
+                                                PRIMARY
+                                            }
+                                        />
+
+                                        <Text
+                                            style={
+                                                styles.menuText
+                                            }
+                                        >
+                                            {
+                                                item.title
+                                            }
+                                        </Text>
+                                    </TouchableOpacity>
+                                )
+                            )}
+
+                            <View
+                                style={
+                                    styles.versionContainer
+                                }
+                            >
+                                <Text
+                                    style={
+                                        styles.versionText
+                                    }
+                                >
+                                    Version
+                                    2.26.21.75
+                                </Text>
+                            </View>
+                        </ScrollView>
+                    </Pressable>
+                </Pressable>
+            </Modal>
 
         </SafeAreaView>
     );
 }
 
-/* ================= STYLES ================= */
-
-const PRIMARY = '#5A0B78';
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: PRIMARY,
-        paddingHorizontal: 16,
     },
 
-    /* HEADER */
     headerRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 10,
+        paddingHorizontal: 16,
+        paddingTop: 10,
     },
 
     brand: {
         color: '#fff',
-        fontSize: 20,
+        fontSize: 22,
         fontWeight: '800',
-        width: 60,
+        marginRight: 12,
     },
 
-    marqueeWrapper: {
+    tickerWrapper: {
         flex: 1,
         overflow: 'hidden',
-        height: 30,
+        height: 32,
         justifyContent: 'center',
     },
 
-    marqueeTrack: {
+    tickerTrack: {
         flexDirection: 'row',
+        alignItems: 'center',
     },
 
-    marqueeText: {
-        color: 'rgba(255,255,255,0.85)',
+    tickerText: {
+        color: 'rgba(255,255,255,0.9)',
         fontSize: 13,
-        marginRight: 25,
+        marginRight: 40,
     },
 
     menuButton: {
-        width: 42,
-        height: 42,
-        borderRadius: 21,
-        backgroundColor: 'rgba(255,255,255,0.15)',
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor:
+            'rgba(255,255,255,0.15)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginLeft: 8,
+        marginLeft: 10,
     },
 
-    /* SOS */
     topSection: {
         flex: 1,
         justifyContent: 'center',
@@ -260,23 +459,29 @@ const styles = StyleSheet.create({
 
     sosText: {
         color: '#fff',
-        fontSize: 60,
-        fontWeight: 'bold',
+        fontSize: 64,
+        fontWeight: '800',
     },
 
-    /* ICONS CENTER PACKED */
+    sosHint: {
+        color: 'rgba(255,255,255,0.8)',
+        marginTop: 24,
+        fontSize: 14,
+    },
+
     iconSection: {
         flexDirection: 'row',
         justifyContent: 'center',
         gap: 14,
-        marginVertical: 20,
+        paddingBottom: 40,
     },
 
     iconButton: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
-        backgroundColor: 'rgba(255,255,255,0.15)',
+        width: 54,
+        height: 54,
+        borderRadius: 27,
+        backgroundColor:
+            'rgba(255,255,255,0.15)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -285,41 +490,55 @@ const styles = StyleSheet.create({
         backgroundColor: '#ff4444',
     },
 
-    /* CONTACTS */
-    bottomSection: {
+    overlay: {
         flex: 1,
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 10,
+        backgroundColor:
+            'rgba(0,0,0,0.45)',
+        justifyContent: 'flex-start',
+        alignItems: 'flex-end',
     },
 
-    contactRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.1)',
-    },
-
-    contactName: {
-        color: '#fff',
-        fontSize: 16,
-    },
-
-    addButtonWrapper: {
-        alignItems: 'center',
-        marginTop: 20,
-        marginBottom: 30,
-    },
-
-    addButton: {
-        width: 70,
-        height: 70,
-        borderRadius: 35,
+    menuModal: {
+        marginTop: 60,
+        marginRight: 16,
+        width: 320,
+        maxHeight: '80%',
         backgroundColor: '#fff',
-        justifyContent: 'center',
+        borderRadius: 18,
+        paddingVertical: 10,
+    },
+
+    menuTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: PRIMARY,
+        paddingHorizontal: 18,
+        paddingVertical: 14,
+    },
+
+    menuItem: {
+        flexDirection: 'row',
         alignItems: 'center',
-        elevation: 8,
+        paddingHorizontal: 18,
+        paddingVertical: 14,
+    },
+
+    menuText: {
+        marginLeft: 14,
+        fontSize: 15,
+        color: '#333',
+    },
+
+    versionContainer: {
+        borderTopWidth: 1,
+        borderTopColor: '#eee',
+        marginTop: 8,
+        padding: 18,
+    },
+
+    versionText: {
+        color: '#777',
+        textAlign: 'center',
+        fontSize: 13,
     },
 });
